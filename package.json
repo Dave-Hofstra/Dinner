@@ -1,0 +1,12 @@
+{
+  "name": "dinner-attendance",
+  "version": "1.0.0",
+  "description": "Herons Gleniacs Thursday Night Dinner Attendance",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

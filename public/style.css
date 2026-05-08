@@ -1,0 +1,609 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.container {
+  max-width: 700px;
+  width: 100%;
+}
+
+header {
+  text-align: center;
+  padding: 12px 0 20px 0;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #1a1a2e;
+}
+
+header h1 {
+  color: #f0c040;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.title-line1 {
+  display: block;
+  font-size: 1.4rem;
+}
+
+.title-line2 {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 300;
+  margin-top: 2px;
+}
+
+.title-line3 {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 300;
+  margin-top: 2px;
+  color: #f0c040;
+  font-family: inherit;
+}
+
+.reset-note {
+  font-size: 0.8rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.header-left {
+  position: absolute;
+  top: 8px;
+  left: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.header-left-top {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.header-refresh-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.refresh-btn {
+  background: #16213e;
+  border: 2px solid #ccc;
+  color: #ccc;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+  padding: 0;
+}
+
+.refresh-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.refresh-btn:hover {
+  background: #1e2a4a;
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.refresh-btn svg.spinning {
+  animation: spin 0.5s ease-in-out;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.countdown-timer {
+  font-size: 0.7rem;
+  color: #fff;
+  text-align: center;
+}
+
+.golf-btn {
+  background: #16213e;
+  border: 2px solid #ccc;
+  color: #ccc;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, box-shadow 0.3s;
+  padding: 0;
+  margin-top: 0;
+}
+
+.golf-btn:hover {
+  background: #1e2a4a;
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.home-btn {
+  background: #16213e;
+  border: 2px solid #ccc;
+  color: #ccc;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, box-shadow 0.3s;
+  padding: 0;
+  margin-top: 0;
+}
+
+.home-btn:hover {
+  background: #1e2a4a;
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.total-badge {
+  position: absolute;
+  top: 8px;
+  right: 5px;
+  background: #16213e;
+  border: 2px solid #ccc;
+  color: #ccc;
+  padding: 4px 10px;
+  border-radius: 16px;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  min-width: 50px;
+}
+
+.badge-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 16px 0;
+}
+
+.family-card {
+  background-color: #16213e;
+  border-radius: 10px;
+  padding: 14px 14px 10px 14px;
+  border: 1px solid #2a2a4a;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+}
+
+.family-card.going {
+  border-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.15);
+}
+
+.card-row-1 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.family-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.25;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  font-size: 1.1rem;
+  transition: color 0.3s, font-weight 0.3s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.toggle-label.not-going {
+  color: #888;
+}
+
+.toggle-label.not-going.active {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.toggle-label.going {
+  color: #888;
+}
+
+.toggle-label.going.active {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 56px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #f44336;
+  transition: 0.3s;
+  border-radius: 30px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.card-comment-row {
+  margin: 6px 0 0 0;
+}
+
+.card-comment-input {
+  width: 100%;
+  background-color: #0f3460;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-comment-input:focus {
+  border-color: #f0c040;
+}
+
+.card-comment-input::placeholder {
+  color: #888;
+  font-style: italic;
+}
+
+.calendar-badge {
+  position: absolute;
+  top: 66px;
+  right: 5px;
+  width: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  user-select: none;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.cal-month {
+  background: #e53935;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 0;
+  line-height: 1.1;
+}
+
+.cal-day {
+  background: #fff;
+  color: #222;
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 2px 0 4px 0;
+  line-height: 1.15;
+}
+
+.card-bottom {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.card-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.attending-zero {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #888;
+  display: none;
+}
+
+.number-label {
+  font-size: 0.95rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.number-select {
+  background-color: #0f3460;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+  min-width: 52px;
+}
+
+.number-select:focus {
+  border-color: #f0c040;
+}
+
+.number-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-row-3 {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 1.2em;
+  margin-top: 2px;
+}
+
+.last-modified {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-style: italic;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.total-section {
+  text-align: center;
+  padding: 14px;
+  background-color: #16213e;
+  border-radius: 10px;
+  border: 1px solid #2a2a4a;
+}
+
+.total-section h2 {
+  font-size: 1.2rem;
+  color: #f0c040;
+}
+
+#totalCount {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.golf-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.golf-overlay.active {
+  display: flex;
+}
+
+.golf-modal {
+  background: #1a1a2e;
+  border: 2px solid #444;
+  border-radius: 16px;
+  padding: 16px;
+  max-width: 640px;
+  width: 95%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.golf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.golf-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f0c040;
+}
+
+.golf-close {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.golf-close:hover {
+  color: #fff;
+}
+
+.golf-strokes {
+  font-size: 0.95rem;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+#golfCanvas {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #2d5a27;
+  display: block;
+}
+
+.golf-hint {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+@media (min-width: 480px) {
+  body {
+    padding: 20px;
+  }
+
+  .family-card {
+    padding: 14px 18px;
+  }
+
+  .title-line1 {
+    font-size: 1.7rem;
+  }
+
+  .title-line2 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 600px) {
+  .family-card {
+    padding: 16px 20px;
+    min-height: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .card-row-1 {
+    margin-bottom: 0;
+    align-items: center;
+    flex: 1;
+  }
+
+  .family-name {
+    font-size: 1.1rem;
+    min-width: 180px;
+  }
+
+  .card-comment-row {
+    width: 100%;
+    margin: 6px 0 0 0;
+    order: 10;
+  }
+
+  .card-bottom {
+    flex: none;
+    margin-top: 0;
+    display: block;
+    flex-shrink: 0;
+    min-width: 200px;
+  }
+
+  .card-row-2 {
+    padding-top: 0;
+  }
+
+  .card-row-3 {
+    margin-top: 0;
+  }
+
+  .last-modified {
+    min-width: 140px;
+    text-align: right;
+  }
+}

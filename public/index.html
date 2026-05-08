@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HG Dinner Club - Reservations</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <div class="header-left-top">
+          <button class="home-btn" id="homeBtn" title="Go to Home">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </button>
+          <div class="header-refresh-group">
+            <button class="refresh-btn" id="refreshBtn" title="Refresh data">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+            <div class="countdown-timer" id="countdownTimer">59s</div>
+          </div>
+        </div>
+        <button class="golf-btn" id="golfBtn" title="Play Mini Golf">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3 24 21" width="38" height="38">
+            <path d="M2 18c2-2 6-3 10-1s8-1 10 1v4H2v-4z" fill="#388e3c"/>
+            <path d="M2 20c4-2 8-2 12 0s6-1 8 0v2H2v-2z" fill="#4caf50"/>
+            <path d="M17.5 4.5l-1.5 10.5H10c-1.1 0-2 .9-2 2s.9 2 2 2h7c1.1 0 1.5-.9 1.5-1.5L20 4.5h-2.5z" fill="#e0e0e0"/>
+          </svg>
+        </button>
+      </div>
+      <div class="total-badge" id="totalBadge">
+        <span class="badge-label">Total</span>
+        <span class="badge-number" id="badgeCount">0</span>
+      </div>
+      <div class="calendar-badge" id="calendarBadge">
+        <div class="cal-month" id="calMonth">MAY</div>
+        <div class="cal-day" id="calDay">7</div>
+      </div>
+      <h1><span class="title-line1">HG Dinner Club</span><span class="title-line2">Reservations</span><span class="title-line3" id="titleDate">For: Loading...</span></h1>
+      <p class="reset-note" id="resetNote"></p>
+    </header>
+
+    <main>
+      <div class="cards-container" id="cardsContainer">
+        <!-- Family cards will be inserted here by JavaScript -->
+      </div>
+
+      <div class="total-section">
+        <h2>Total Attending: <span id="totalCount">0</span></h2>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mini Golf Modal -->
+  <div class="golf-overlay" id="golfOverlay">
+    <div class="golf-modal">
+      <div class="golf-header">
+        <span class="golf-title">Mini Golf</span>
+        <button class="golf-close" id="golfClose">&times;</button>
+      </div>
+      <div class="golf-strokes">Strokes: <span id="strokeCount">0</span></div>
+      <canvas id="golfCanvas" width="600" height="400"></canvas>
+      <p class="golf-hint">Click and drag from ball to aim, release to shoot</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
