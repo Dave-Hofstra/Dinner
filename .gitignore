@@ -33,3 +33,9 @@ Thumbs.db
 dist/
 build/
 out/
+
+# Runtime data
+data/
+
+# Extra assets
+Extra_Assets/

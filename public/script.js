@@ -1,6 +1,3 @@
-
-// Use the current path prefix so it works both locally and behind nginx reverse proxy
-// When at /Dinner/, prefix should be /Dinner. When at /, prefix should be empty.
 const PATH_PREFIX = window.location.pathname.replace(/\/$/, '');
 const API_BASE = (PATH_PREFIX === '' ? '' : PATH_PREFIX) + '/api/attendance';
 
@@ -8,6 +5,11 @@ const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+let isLocked = false;
+let noDinnerActive = false;
+let noDinnerMessage = '';
+let adminMode = false;
 
 function formatDateDisplay(dateStr) {
   const parts = dateStr.split('-');
@@ -73,114 +75,369 @@ async function updateAttendance(family, data) {
   return await response.json();
 }
 
-function calculateTotal(families) {
-  let total = 0;
-  for (const name in families) {
-    if (families[name].going) {
-      total += families[name].count;
+async function updateLockState(locked) {
+  const response = await fetch(API_BASE + '/lock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locked: locked })
+  });
+  return await response.json();
+}
+
+async function updateNoDinnerState(noDinner, message) {
+  const response = await fetch(API_BASE + '/no-dinner', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ noDinner: noDinner, message: message })
+  });
+  return await response.json();
+}
+
+async function adminAddFamily(name, count) {
+  const response = await fetch(API_BASE + '/admin/add-family', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, count: count })
+  });
+  return await response.json();
+}
+
+async function adminToggleActive(name) {
+  const response = await fetch(API_BASE + '/admin/toggle-active', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  });
+  return await response.json();
+}
+/** Admin API: delete a family card */
+async function adminDeleteFamily(name) {
+  const response = await fetch(API_BASE + '/admin/delete-family', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  });
+  return await response.json();
+}
+
+function showCardSaved(savedEl) {
+  if (!savedEl) return;
+  if (savedEl._savedTimeout) clearTimeout(savedEl._savedTimeout);
+  if (savedEl._fadeTimeout) clearTimeout(savedEl._fadeTimeout);
+  savedEl.classList.remove('fading');
+  savedEl.textContent = 'Saved \u2713';
+  void savedEl.offsetWidth;
+  savedEl.classList.add('visible');
+  savedEl._fadeTimeout = setTimeout(() => {
+    savedEl.classList.add('fading');
+    savedEl._hideTimeout = setTimeout(() => {
+      savedEl.classList.remove('visible', 'fading');
+    }, 300);
+  }, 5000);
+}
+
+function pulseHighlight(card, area) {
+  if (area === 'attending') {
+    const select = card.querySelector('.number-select');
+    if (select) {
+      select.classList.remove('highlight-pulse-select');
+      void select.offsetWidth;
+      select.classList.add('highlight-pulse-select');
+    }
+  } else {
+    const row = card.querySelector('.card-comment-row');
+    if (row) {
+      row.classList.remove('highlight-pulse');
+      void row.offsetWidth;
+      row.classList.add('highlight-pulse');
     }
   }
-  return total;
+}
+
+function celebrateGoing(card) {
+  const container = document.createElement('div');
+  container.className = 'celebration-container';
+  card.style.position = 'relative';
+  card.appendChild(container);
+  const icons = ['\ud83c\udf88', '\ud83c\udf89', '\ud83c\udf8a', '\ud83c\udf88', '\ud83c\udf89', '\ud83c\udf8a', '\u2728', '\ud83c\udf1f', '\ud83d\udcab', '\ud83c\udf8a', '\ud83c\udf89', '\ud83c\udf88'];
+  icons.forEach((emoji, i) => {
+    const el = document.createElement('span');
+    el.className = i < 6 ? 'balloon' : 'confetti';
+    el.textContent = emoji;
+    el.style.left = (5 + Math.random() * 85) + '%';
+    el.style.animationDelay = (Math.random() * 0.5) + 's';
+    container.appendChild(el);
+  });
+  setTimeout(() => { if (container.parentNode) container.remove(); }, 3200);
+}
+
+function celebrateNotGoing(card) {
+  card.style.position = 'relative';
+  const sad = document.createElement('span');
+  sad.className = 'sad-emoji';
+  sad.textContent = '\ud83d\ude22';
+  sad.style.left = (35 + Math.random() * 20) + '%';
+  sad.style.top = (20 + Math.random() * 30) + '%';
+  card.appendChild(sad);
+  setTimeout(() => { if (sad.parentNode) sad.remove(); }, 2200);
+}
+
+function confirmPam(actionLabel) {
+  return confirm('You are asking to enter admin mode.\n\nAre you Pam?\n\n(You are about to: ' + actionLabel + ')');
+}
+
+function applyAdminMode() {
+  const adminBtn = document.getElementById('adminBtn');
+  const adminToolbar = document.getElementById('adminToolbar');
+  if (adminMode) {
+    document.body.classList.add('admin-mode');
+    if (adminBtn) adminBtn.classList.add('active');
+    if (adminToolbar) adminToolbar.style.display = 'flex';
+  } else {
+    document.body.classList.remove('admin-mode');
+    if (adminBtn) adminBtn.classList.remove('active');
+    if (adminToolbar) adminToolbar.style.display = 'none';
+  }
+  document.querySelectorAll('.card-admin-row').forEach(row => {
+    row.style.display = adminMode ? 'flex' : 'none';
+  });
+}
+
+function applyLockState() {
+  const cards = document.querySelectorAll('.family-card:not(.inactive-card)');
+  cards.forEach(card => {
+    const notGoingBtn = card.querySelector('.toggle-btn[data-value="not-going"]');
+    const goingBtn = card.querySelector('.toggle-btn[data-value="going"]');
+    const select = card.querySelector('.number-select');
+    const commentInput = card.querySelector('.card-comment-input');
+    const lastMod = card.querySelector('.last-modified');
+    const lockBadge = card.querySelector('.lock-badge');
+
+    if (isLocked) {
+      card.classList.add('locked');
+      if (notGoingBtn) { notGoingBtn.disabled = true; notGoingBtn.classList.add('locked-disabled'); }
+      if (goingBtn) { goingBtn.disabled = true; goingBtn.classList.add('locked-disabled'); }
+      if (select) select.disabled = true;
+      if (commentInput) commentInput.disabled = true;
+      if (!lockBadge) {
+        const badge = document.createElement('span');
+        badge.className = 'lock-badge';
+        badge.textContent = '\ud83d\udd12';
+        if (card.firstChild) card.insertBefore(badge, card.firstChild);
+        else card.appendChild(badge);
+      }
+      if (lastMod && !lastMod.classList.contains('locked')) {
+        lastMod.dataset.originalText = lastMod.textContent || '';
+        lastMod.textContent = '\ud83d\udd12 Locked \u2014 Call Pam to change';
+        lastMod.classList.add('locked');
+      }
+      if (!card.dataset.lockClickHandler) {
+        card.dataset.lockClickHandler = 'true';
+        card.addEventListener('click', (e) => {
+          if (isLocked) {
+            const lm = card.querySelector('.last-modified.locked');
+            if (lm) flashLockedMessage(lm);
+          }
+        });
+      }
+    } else {
+      card.classList.remove('locked');
+      if (notGoingBtn) { notGoingBtn.disabled = false; notGoingBtn.classList.remove('locked-disabled'); }
+      if (goingBtn) { goingBtn.disabled = false; goingBtn.classList.remove('locked-disabled'); }
+      if (commentInput) commentInput.disabled = false;
+      if (select) {
+        const going = goingBtn && goingBtn.classList.contains('active-going');
+        select.disabled = !going;
+      }
+      if (lockBadge) lockBadge.remove();
+      if (lastMod && lastMod.classList.contains('locked')) {
+        lastMod.textContent = lastMod.dataset.originalText || '';
+        lastMod.classList.remove('locked');
+        lastMod.style.backgroundColor = 'transparent';
+        lastMod.style.padding = '';
+        lastMod.style.borderRadius = '';
+      }
+    }
+  });
+
+  const lockBtn = document.getElementById('lockBtn');
+  if (lockBtn) {
+    lockBtn.classList.toggle('locked', isLocked);
+    lockBtn.title = isLocked ? 'Unlock Reservations' : 'Lock Reservations';
+    const label = lockBtn.querySelector('.admin-tool-label');
+    if (label) label.textContent = isLocked ? 'Unlock Reservations' : 'Lock Reservations';
+    const svg = lockBtn.querySelector('svg');
+    if (svg) {
+      if (isLocked) {
+        svg.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><path d="M12 15v3"></path>';
+      } else {
+        svg.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>';
+      }
+    }
+  }
+}
+
+function flashLockedMessage(lastMod) {
+  lastMod.style.transition = 'background-color 0.05s';
+  lastMod.style.backgroundColor = 'rgba(240, 192, 64, 0.3)';
+  lastMod.style.borderRadius = '4px';
+  lastMod.style.padding = '2px 6px';
+  setTimeout(() => { lastMod.style.backgroundColor = 'transparent'; }, 300);
+}
+
+function applyNoDinnerState() {
+  const overlayCard = document.getElementById('overlayCard');
+  const overlayTitle = document.getElementById('overlayCardTitle');
+  const messageInput = document.getElementById('overlayMessageInput');
+  const noDinnerBtn = document.getElementById('noDinnerBtn');
+  const totalSection = document.getElementById('totalSection');
+  const cardsContainer = document.getElementById('cardsContainer');
+  const inactiveSection = document.getElementById('inactiveSection');
+
+  if (noDinnerActive) {
+    const titleDateEl = document.getElementById('titleDate');
+    const dateText = titleDateEl.textContent.replace('For: ', '');
+    overlayTitle.textContent = 'No Dinner for ' + dateText;
+    messageInput.value = noDinnerMessage || '';
+    overlayCard.classList.add('active');
+    cardsContainer.style.display = 'none';
+    totalSection.style.display = 'none';
+    if (inactiveSection) inactiveSection.style.display = 'none';
+    if (noDinnerBtn) {
+      noDinnerBtn.classList.add('active');
+      noDinnerBtn.title = 'Cancel Dinner (active)';
+      const label = noDinnerBtn.querySelector('.admin-tool-label');
+      if (label) label.textContent = 'Uncancel Dinner';
+    }
+  } else {
+    overlayCard.classList.remove('active');
+    cardsContainer.style.display = '';
+    totalSection.style.display = '';
+    if (noDinnerBtn) {
+      noDinnerBtn.classList.remove('active');
+      noDinnerBtn.title = 'Cancel Dinner';
+      const label = noDinnerBtn.querySelector('.admin-tool-label');
+      if (label) label.textContent = 'Cancel Dinner';
+    }
+    updateInactiveSection();
+  }
+}
+
+function updateCardInPlace(card, data) {
+  const going = data.going;
+  const notGoingBtn = card.querySelector('.toggle-btn[data-value="not-going"]');
+  const goingBtn = card.querySelector('.toggle-btn[data-value="going"]');
+  const select = card.querySelector('.number-select');
+  const commentInput = card.querySelector('.card-comment-input');
+  const lastMod = card.querySelector('.last-modified');
+
+  card.classList.toggle('going', going);
+  if (notGoingBtn) {
+    notGoingBtn.classList.toggle('active-not-going', !going);
+    notGoingBtn.textContent = going ? 'Not Going' : '\u2715 Not Going';
+  }
+  if (goingBtn) {
+    goingBtn.classList.toggle('active-going', going);
+    goingBtn.textContent = going ? '\u2705 Going' : 'Going';
+  }
+  if (select) {
+    select.value = data.count;
+    select.disabled = !going || isLocked;
+  }
+  if (commentInput) {
+    commentInput.value = data.comments || '';
+    const clearBtn = card.querySelector('.comment-clear-btn');
+    if (clearBtn) clearBtn.classList.toggle('visible', (data.comments || '').length > 0);
+  }
+  if (lastMod && !lastMod.classList.contains('locked')) {
+    if (data.lastModified) {
+      const ipParts = data.lastModified.ip.split('.');
+      const shortIp = ipParts.slice(0, 2).join('.') + '.x.x';
+      lastMod.textContent = '(' + shortIp + ' ' + formatLastModifiedTime(data.lastModified.time) + ')';
+    } else {
+      lastMod.textContent = '';
+    }
+    lastMod.dataset.originalText = lastMod.textContent || '';
+  }
 }
 
 function createFamilyCard(name, data) {
+  const isInactive = data.active === false;
   const card = document.createElement('div');
-  card.className = 'family-card' + (data.going ? ' going' : '');
+  card.className = 'family-card' + (data.going && !isInactive ? ' going' : '') + (isInactive ? ' inactive-card' : '');
   card.dataset.family = name;
   card.style.transition = 'order 0.5s ease, border-color 0.3s';
 
   const row1 = document.createElement('div');
   row1.className = 'card-row-1';
-
   const nameEl = document.createElement('div');
   nameEl.className = 'family-name';
   nameEl.textContent = name;
 
   const toggleContainer = document.createElement('div');
   toggleContainer.className = 'toggle-container';
+  const notGoingBtn = document.createElement('button');
+  notGoingBtn.className = 'toggle-btn' + (data.going || isInactive ? '' : ' active-not-going');
+  notGoingBtn.textContent = data.going || isInactive ? 'Not Going' : '\u2715 Not Going';
+  notGoingBtn.dataset.value = 'not-going';
+  notGoingBtn.type = 'button';
+  const goingBtn = document.createElement('button');
+  goingBtn.className = 'toggle-btn' + (data.going && !isInactive ? ' active-going' : '');
+  goingBtn.textContent = data.going && !isInactive ? '\u2705 Going' : 'Going';
+  goingBtn.dataset.value = 'going';
+  goingBtn.type = 'button';
 
-  const notGoingLabel = document.createElement('span');
-  notGoingLabel.className = 'toggle-label not-going' + (data.going ? '' : ' active');
-  notGoingLabel.textContent = 'Not Going';
+  if (isInactive) {
+    notGoingBtn.disabled = true; notGoingBtn.classList.add('locked-disabled');
+    goingBtn.disabled = true; goingBtn.classList.add('locked-disabled');
+  }
 
-  const label = document.createElement('label');
-  label.className = 'switch';
-
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = data.going;
-
-  const slider = document.createElement('span');
-  slider.className = 'slider';
-
-  label.appendChild(checkbox);
-  label.appendChild(slider);
-
-  const goingLabel = document.createElement('span');
-  goingLabel.className = 'toggle-label going' + (data.going ? ' active' : '');
-  goingLabel.textContent = 'Going';
-
-  toggleContainer.appendChild(notGoingLabel);
-  toggleContainer.appendChild(label);
-  toggleContainer.appendChild(goingLabel);
-
+  toggleContainer.appendChild(notGoingBtn);
+  toggleContainer.appendChild(goingBtn);
   row1.appendChild(nameEl);
   row1.appendChild(toggleContainer);
 
   const commentRow = document.createElement('div');
   commentRow.className = 'card-comment-row';
-
   const commentInput = document.createElement('input');
   commentInput.type = 'text';
   commentInput.className = 'card-comment-input';
-  commentInput.placeholder = 'Add Comments:';
+  commentInput.placeholder = 'Add Comments';
   commentInput.value = data.comments || '';
 
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'comment-clear-btn' + (data.comments ? ' visible' : '');
+  clearBtn.textContent = 'Clear';
+  clearBtn.type = 'button';
+  clearBtn.tabIndex = -1;
   commentRow.appendChild(commentInput);
+  commentRow.appendChild(clearBtn);
 
   const bottomSection = document.createElement('div');
   bottomSection.className = 'card-bottom';
-
   const row2 = document.createElement('div');
   row2.className = 'card-row-2';
-
   const selectLabel = document.createElement('span');
   selectLabel.className = 'number-label';
   selectLabel.textContent = 'Attending:';
-
-  const zeroDisplay = document.createElement('span');
-  zeroDisplay.className = 'attending-zero';
-  zeroDisplay.textContent = '0';
-
   const select = document.createElement('select');
   select.className = 'number-select';
   for (let i = 1; i <= 6; i++) {
-    const option = document.createElement('option');
-    option.value = i;
-    option.textContent = i;
-    if (i === data.count) {
-      option.selected = true;
-    }
-    select.appendChild(option);
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    if (i === data.count) opt.selected = true;
+    select.appendChild(opt);
   }
-
-  if (!data.going) {
-    select.disabled = true;
-    select.style.display = 'none';
-    zeroDisplay.style.display = 'inline';
-  } else {
-    select.disabled = false;
-    select.style.display = 'inline';
-    zeroDisplay.style.display = 'none';
-  }
-
+  select.disabled = !data.going || isInactive;
   row2.appendChild(selectLabel);
   row2.appendChild(select);
-  row2.appendChild(zeroDisplay);
+  bottomSection.appendChild(row2);
 
   const row3 = document.createElement('div');
   row3.className = 'card-row-3';
-
+  const savedEl = document.createElement('span');
+  savedEl.className = 'saved-indicator';
+  row3.appendChild(savedEl);
   const lastMod = document.createElement('span');
   lastMod.className = 'last-modified';
   if (data.lastModified) {
@@ -188,681 +445,337 @@ function createFamilyCard(name, data) {
     const shortIp = ipParts.slice(0, 2).join('.') + '.x.x';
     lastMod.textContent = '(' + shortIp + ' ' + formatLastModifiedTime(data.lastModified.time) + ')';
   }
-
+  lastMod.dataset.originalText = lastMod.textContent || '';
   row3.appendChild(lastMod);
 
-  bottomSection.appendChild(row2);
-  bottomSection.appendChild(row3);
-
   card.appendChild(row1);
-  card.appendChild(commentRow);
   card.appendChild(bottomSection);
+  card.appendChild(commentRow);
+  card.appendChild(row3);
 
-  checkbox.addEventListener('change', async () => {
-    const going = checkbox.checked;
-    card.classList.toggle('going', going);
-    notGoingLabel.classList.toggle('active', !going);
-    goingLabel.classList.toggle('active', going);
+  // Admin row
+  const adminRow = document.createElement('div');
+  adminRow.className = 'card-admin-row';
+  const moveBtn = document.createElement('button');
+  if (isInactive) {
+    moveBtn.className = 'move-active-btn';
+    moveBtn.textContent = '\u25b6 Move to Active';
+    moveBtn.title = 'Move this attendee back to active';
+    moveBtn.addEventListener('click', async () => {
+      try { await adminToggleActive(name); } catch (err) { console.error(err); }
+    });
+  } else {
+    moveBtn.className = 'move-inactive-btn';
+    moveBtn.textContent = '\u25a0 Move to Inactive';
+    moveBtn.title = 'Move this attendee to inactive';
+    moveBtn.addEventListener('click', async () => {
+      try { await adminToggleActive(name); } catch (err) { console.error(err); }
+    });
+  }
+  adminRow.appendChild(moveBtn);
 
-    if (going) {
-      const defaultCount = name === 'Kathy' ? 1 : 2;
-      select.disabled = false;
-      select.style.display = 'inline';
-      zeroDisplay.style.display = 'none';
-      select.value = defaultCount;
-      await updateAttendance(name, { going: going, count: defaultCount });
-    } else {
-      select.disabled = true;
-      select.style.display = 'none';
-      zeroDisplay.style.display = 'inline';
-      await updateAttendance(name, { going: going });
+  // Delete button (visible in admin mode)
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-card-btn';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.title = 'Delete this card permanently';
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to delete the card for "' + name + '"?\n\nThis cannot be undone.')) return;
+    try {
+      const result = await adminDeleteFamily(name);
+      if (!result.success) {
+        alert(result.error || 'Failed to delete card');
+      }
+      // SSE will re-render on success
+    } catch (err) {
+      console.error('Failed to delete card:', err);
+      alert('Error deleting card.');
     }
-    updateTotal();
   });
+  adminRow.appendChild(deleteBtn);
 
-  select.addEventListener('change', async () => {
-    const count = parseInt(select.value, 10);
-    await updateAttendance(name, { count: count });
-    updateTotal();
-  });
+  card.appendChild(adminRow);
+  if (adminMode) adminRow.style.display = 'flex';
 
+  // Event handlers
+  // Toggle/select handlers only for active cards
+  if (!isInactive) {
+    function setGoing(going) {
+      card.classList.toggle('going', going);
+      notGoingBtn.classList.toggle('active-not-going', !going);
+      goingBtn.classList.toggle('active-going', going);
+      notGoingBtn.textContent = going ? 'Not Going' : '\u2715 Not Going';
+      goingBtn.textContent = going ? '\u2705 Going' : 'Going';
+      select.disabled = !going;
+    }
+
+    notGoingBtn.addEventListener('click', async () => {
+      if (isLocked || notGoingBtn.disabled) return;
+      const wasGoing = goingBtn.classList.contains('active-going');
+      if (!wasGoing) return;
+      setGoing(false);
+      await updateAttendance(name, { going: false });
+      updateTotal();
+      showCardSaved(savedEl);
+      pulseHighlight(card, 'comments');
+      celebrateNotGoing(card);
+    });
+
+    goingBtn.addEventListener('click', async () => {
+      if (isLocked || goingBtn.disabled) return;
+      const wasGoing = goingBtn.classList.contains('active-going');
+      if (wasGoing) return;
+      setGoing(true);
+      await updateAttendance(name, { going: true, count: parseInt(select.value, 10) });
+      updateTotal();
+      showCardSaved(savedEl);
+      pulseHighlight(card, 'attending');
+      celebrateGoing(card);
+    });
+
+    select.addEventListener('change', async () => {
+      if (isLocked) return;
+      await updateAttendance(name, { count: parseInt(select.value, 10) });
+      updateTotal();
+      showCardSaved(savedEl);
+    });
+  }
+
+  // Comment handlers work for all cards (active and inactive)
+  function updateClearBtn() { clearBtn.classList.toggle('visible', commentInput.value.length > 0); }
+  commentInput.addEventListener('input', updateClearBtn);
   commentInput.addEventListener('blur', async () => {
-    const comments = commentInput.value;
-    await updateAttendance(name, { comments: comments });
+    if (isLocked) return;
+    await updateAttendance(name, { comments: commentInput.value });
+    showCardSaved(savedEl);
+  });
+  clearBtn.addEventListener('click', async () => {
+    if (isLocked) return;
+    commentInput.value = '';
+    updateClearBtn();
+    await updateAttendance(name, { comments: '' });
+    showCardSaved(savedEl);
   });
 
   return card;
 }
 
 function updateTotal() {
-  const cards = document.querySelectorAll('.family-card');
+  const cards = document.querySelectorAll('.family-card:not(.inactive-card)');
   let total = 0;
-
   cards.forEach(card => {
-    const checkbox = card.querySelector('.switch input');
+    const goingBtn = card.querySelector('.toggle-btn[data-value="going"]');
     const select = card.querySelector('.number-select');
-    if (checkbox.checked) {
+    if (goingBtn && goingBtn.classList.contains('active-going') && select) {
       total += parseInt(select.value, 10);
     }
   });
-
   document.getElementById('totalCount').textContent = total;
   document.getElementById('badgeCount').textContent = total;
+}
+
+function updateInactiveSection() {
+  const inactiveSection = document.getElementById('inactiveSection');
+  const inactiveCards = document.querySelectorAll('.family-card.inactive-card');
+  if (inactiveCards.length > 0 && !noDinnerActive) {
+    inactiveSection.style.display = 'block';
+  } else {
+    inactiveSection.style.display = 'none';
+  }
+}
+
+function renderAllCards(familiesData) {
+  const container = document.getElementById('cardsContainer');
+  const inactiveContainer = document.getElementById('inactiveCardsContainer');
+  container.innerHTML = '';
+  if (inactiveContainer) inactiveContainer.innerHTML = '';
+
+  const activeFamilies = {};
+  const inactiveFamilies = {};
+  for (const [name, info] of Object.entries(familiesData)) {
+    if (info.active === false) inactiveFamilies[name] = info;
+    else activeFamilies[name] = info;
+  }
+
+  for (const name in activeFamilies) container.appendChild(createFamilyCard(name, activeFamilies[name]));
+
+  if (inactiveContainer) {
+    for (const name in inactiveFamilies) inactiveContainer.appendChild(createFamilyCard(name, inactiveFamilies[name]));
+  }
+
+  const inactiveSection = document.getElementById('inactiveSection');
+  const hasInactive = Object.keys(inactiveFamilies).length > 0;
+  if (inactiveSection) inactiveSection.style.display = hasInactive && !noDinnerActive ? 'block' : 'none';
 }
 
 async function init() {
   try {
     const data = await fetchAttendance();
     document.getElementById('titleDate').textContent = 'For: ' + formatDateDisplay(data.date);
-
     const parts = data.date.split('-');
     const monthNum = parseInt(parts[1], 10);
     const dayNum = parseInt(parts[2], 10);
-    const shortMonths = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const shortMonths = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     document.getElementById('calMonth').textContent = shortMonths[monthNum - 1];
     document.getElementById('calDay').textContent = dayNum;
-
     document.getElementById('resetNote').textContent = 'Will RESET on ' + getResetFriday();
-
-    const container = document.getElementById('cardsContainer');
-    container.innerHTML = '';
-
-    for (const name in data.families) {
-      const card = createFamilyCard(name, data.families[name]);
-      container.appendChild(card);
-    }
-
+    isLocked = data.locked || false;
+    noDinnerActive = data.noDinner || false;
+    noDinnerMessage = data.noDinnerMessage || '';
+    renderAllCards(data.families);
     updateTotal();
+    applyLockState();
+    applyNoDinnerState();
+    applyAdminMode();
+
+    const now = new Date();
+    const options = { timeZone: 'America/New_York', year: '2-digit', month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true };
+    const timeFormatter = new Intl.DateTimeFormat('en-US', options);
+    const timeParts = timeFormatter.formatToParts(now);
+    const getPart = (type) => timeParts.find(p => p.type === type).value;
+    const versionStr = getPart('month') + '/' + getPart('day') + '/' + getPart('year') + ' ' + getPart('hour') + ':' + getPart('minute') + getPart('dayPeriod').toLowerCase();
+    document.getElementById('versionFooter').textContent = 'Version: ' + versionStr + ' Docker';
   } catch (error) {
     console.error('Failed to load attendance data:', error);
   }
 }
 
-let countdownSeconds = 59;
-
+let countdownSeconds = 300;
 function updateCountdown() {
-  document.getElementById('countdownTimer').textContent = countdownSeconds + 's';
+  const minutes = Math.floor(countdownSeconds / 60);
+  const seconds = countdownSeconds % 60;
+  document.getElementById('countdownTimer').textContent = minutes + 'm ' + seconds + 's';
   countdownSeconds--;
-  if (countdownSeconds < 0) {
-    countdownSeconds = 59;
-  }
+  if (countdownSeconds < 0) countdownSeconds = 300;
 }
 
 init();
 updateCountdown();
-
-setInterval(init, 60000);
 setInterval(updateCountdown, 1000);
+
+const eventSource = new EventSource(API_BASE + '/stream');
+eventSource.onmessage = (event) => {
+  try {
+    const data = JSON.parse(event.data);
+    document.getElementById('titleDate').textContent = 'For: ' + formatDateDisplay(data.date);
+    const parts = data.date.split('-');
+    const monthNum = parseInt(parts[1], 10);
+    const dayNum = parseInt(parts[2], 10);
+    const shortMonths = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    document.getElementById('calMonth').textContent = shortMonths[monthNum - 1];
+    document.getElementById('calDay').textContent = dayNum;
+    document.getElementById('resetNote').textContent = 'Will RESET on ' + getResetFriday();
+    isLocked = data.locked || false;
+    noDinnerActive = data.noDinner || false;
+    noDinnerMessage = data.noDinnerMessage || '';
+    renderAllCards(data.families);
+    updateTotal();
+    applyLockState();
+    applyNoDinnerState();
+    applyAdminMode();
+
+    const now = new Date();
+    const options = { timeZone: 'America/New_York', year: '2-digit', month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true };
+    const timeFormatter = new Intl.DateTimeFormat('en-US', options);
+    const timeParts = timeFormatter.formatToParts(now);
+    const getPart = (type) => timeParts.find(p => p.type === type).value;
+    const versionStr = getPart('month') + '/' + getPart('day') + '/' + getPart('year') + ' ' + getPart('hour') + ':' + getPart('minute') + getPart('dayPeriod').toLowerCase();
+    document.getElementById('versionFooter').textContent = 'Version: ' + versionStr + ' Docker';
+  } catch (error) {
+    console.error('Failed to process SSE data:', error);
+  }
+};
+eventSource.onerror = () => { console.warn('SSE connection lost, will auto-reconnect...'); };
 
 document.addEventListener('DOMContentLoaded', () => {
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
-      countdownSeconds = 59;
-      document.getElementById('countdownTimer').textContent = '59s';
+      countdownSeconds = 300;
+      document.getElementById('countdownTimer').textContent = '5m 0s';
       const svg = refreshBtn.querySelector('svg');
-      if (svg) {
-        svg.classList.add('spinning');
-        init().finally(() => {
-          setTimeout(() => svg.classList.remove('spinning'), 500);
-        });
-      } else {
-        init();
-      }
+      if (svg) { svg.classList.add('spinning'); init().finally(() => setTimeout(() => svg.classList.remove('spinning'), 500)); }
+      else init();
     });
   }
 
   const homeBtn = document.getElementById('homeBtn');
   if (homeBtn) {
-    homeBtn.addEventListener('click', () => {
-      // Navigate to LandingPage - go up one level from /Dinner to root
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith('/Dinner')) {
-        window.location.href = '/';
-      } else {
-        window.location.href = '/';
+    homeBtn.addEventListener('click', () => { window.location.href = 'https://dhofstra.com/LandingPage/'; });
+  }
+
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) {
+    adminBtn.addEventListener('click', () => {
+      if (adminMode) { adminMode = false; applyAdminMode(); }
+      else { if (!confirmPam('Enter Admin Mode')) return; adminMode = true; applyAdminMode(); }
+    });
+  }
+
+  const lockBtn = document.getElementById('lockBtn');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', async () => {
+      const newLocked = !isLocked;
+      try { const r = await updateLockState(newLocked); if (r.success) { isLocked = r.locked; applyLockState(); } }
+      catch (e) { console.error(e); }
+    });
+  }
+
+  const noDinnerBtn = document.getElementById('noDinnerBtn');
+  if (noDinnerBtn) {
+    noDinnerBtn.addEventListener('click', async () => {
+      if (!noDinnerActive) {
+        if (!confirm('This will hide all reservations and show a "No Dinner" message.\n\nAre you sure you want to cancel dinner this week?')) return;
       }
+      const newNoDinner = !noDinnerActive;
+      try {
+        const message = newNoDinner ? noDinnerMessage : '';
+        const r = await updateNoDinnerState(newNoDinner, message);
+        if (r.success) { noDinnerActive = r.noDinner; noDinnerMessage = r.noDinnerMessage || ''; applyNoDinnerState(); }
+      } catch (e) { console.error(e); }
+    });
+  }
+
+  const addFamilyBtn = document.getElementById('addFamilyBtn');
+  const addFamilyModal = document.getElementById('addFamilyModal');
+  const modalCancelBtn = document.getElementById('modalCancelBtn');
+  const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+  const newFamilyName = document.getElementById('newFamilyName');
+  const newFamilyCount = document.getElementById('newFamilyCount');
+
+  function openAddFamilyModal() {
+    if (addFamilyModal) { addFamilyModal.classList.add('active'); if (newFamilyName) { newFamilyName.value = ''; newFamilyName.focus(); } if (newFamilyCount) newFamilyCount.value = '2'; }
+  }
+  function closeAddFamilyModal() { if (addFamilyModal) addFamilyModal.classList.remove('active'); }
+
+  if (addFamilyBtn) addFamilyBtn.addEventListener('click', openAddFamilyModal);
+  if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeAddFamilyModal);
+  if (addFamilyModal) addFamilyModal.addEventListener('click', (e) => { if (e.target === addFamilyModal) closeAddFamilyModal(); });
+  if (modalConfirmBtn && newFamilyName && newFamilyCount) {
+    modalConfirmBtn.addEventListener('click', async () => {
+      const name = newFamilyName.value.trim();
+      if (!name) { alert('Please enter a name.'); return; }
+      const count = parseInt(newFamilyCount.value, 10) || 2;
+      try { const r = await adminAddFamily(name, count); if (r.success) closeAddFamilyModal(); else alert(r.error || 'Failed to add family'); }
+      catch (e) { console.error(e); alert('Error adding family.'); }
+    });
+  }
+  if (newFamilyName) newFamilyName.addEventListener('keydown', (e) => { if (e.key === 'Enter' && modalConfirmBtn) modalConfirmBtn.click(); });
+
+  const overlayCloseBtn = document.getElementById('overlayCloseBtn');
+  if (overlayCloseBtn) {
+    overlayCloseBtn.addEventListener('click', async () => {
+      if (!confirmPam('Turn off No-Dinner mode')) return;
+      try { const r = await updateNoDinnerState(false, ''); if (r.success) { noDinnerActive = false; noDinnerMessage = ''; applyNoDinnerState(); } }
+      catch (e) { console.error(e); }
+    });
+  }
+
+  const overlayMessageInput = document.getElementById('overlayMessageInput');
+  if (overlayMessageInput) {
+    overlayMessageInput.addEventListener('blur', async () => {
+      try { const r = await updateNoDinnerState(noDinnerActive, overlayMessageInput.value); if (r.success) noDinnerMessage = r.noDinnerMessage || ''; }
+      catch (e) { console.error(e); }
     });
   }
 });
-
-(function() {
-  const canvas = document.getElementById('golfCanvas');
-  const ctx = canvas.getContext('2d');
-  const strokeSpan = document.getElementById('strokeCount');
-  const overlay = document.getElementById('golfOverlay');
-  const closeBtn = document.getElementById('golfClose');
-  const golfBtn = document.getElementById('golfBtn');
-
-  const W = 600, H = 400;
-  const course = { width: W, height: H, walls: [], obstacles: [], hole: { x:0, y:0, r: 12 }, start: { x:0, y:0 } };
-
-  function generateCourse() {
-    course.walls = [
-      [0, 0, W, 0],
-      [W, 0, W, H],
-      [W, H, 0, H],
-      [0, H, 0, 0]
-    ];
-
-    course.start.x = 40 + Math.random() * 80;
-    course.start.y = 60 + Math.random() * 280;
-
-    course.hole.x = 420 + Math.random() * 140;
-    course.hole.y = 60 + Math.random() * 280;
-
-    course.obstacles = [];
-
-    const numWalls = 2 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < numWalls; i++) {
-      let wall;
-      let attempts = 0;
-      do {
-        const isHorizontal = Math.random() > 0.5;
-        const len = 60 + Math.random() * 90;
-        const x = 120 + Math.random() * 360;
-        const y = 50 + Math.random() * 300;
-
-        if (isHorizontal) {
-          wall = [x, y, Math.min(x + len, 480), y];
-        } else {
-          wall = [x, y, x, Math.min(y + len, 350)];
-        }
-        attempts++;
-      } while (attempts < 20 && isWallBlocking(wall));
-      course.walls.push(wall);
-    }
-
-    const types = ['alligator', 'bird', 'turtle'];
-    const numAnimals = 2 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < numAnimals; i++) {
-      let obs;
-      let attempts = 0;
-      do {
-        const type = types[Math.floor(Math.random() * types.length)];
-        const x = 100 + Math.random() * 400;
-        const y = 50 + Math.random() * 300;
-        const angle = Math.random() * Math.PI * 2;
-        if (type === 'alligator') {
-          obs = { type, x, y, angle, length: 50 + Math.random() * 30, radius: 10 };
-        } else if (type === 'bird') {
-          obs = { type, x, y, radius: 14 };
-        } else {
-          obs = { type, x, y, radius: 18 };
-        }
-        attempts++;
-      } while (attempts < 20 && isObstacleBlocking(obs));
-      course.obstacles.push(obs);
-    }
-  }
-
-  function isWallBlocking(wall) {
-    const cx = (wall[0] + wall[2]) / 2;
-    const cy = (wall[1] + wall[3]) / 2;
-    const dStart = Math.sqrt((cx - course.start.x) ** 2 + (cy - course.start.y) ** 2);
-    const dHole = Math.sqrt((cx - course.hole.x) ** 2 + (cy - course.hole.y) ** 2);
-    return dStart < 60 || dHole < 60;
-  }
-
-  function isObstacleBlocking(obs) {
-    const dStart = dist(obs.x, obs.y, course.start.x, course.start.y);
-    const dHole = dist(obs.x, obs.y, course.hole.x, course.hole.y);
-    return dStart < 60 || dHole < 60;
-  }
-
-  let ball = { x:0, y:0, vx:0, vy:0, r: 6 };
-  let strokes = 0;
-  let isDragging = false;
-  let dragStart = { x:0, y:0 };
-  let dragEnd = { x:0, y:0 };
-  let isMoving = false;
-  let gameWon = false;
-
-  const FRICTION = 0.97;
-  const MIN_SPEED = 0.3;
-  const MAX_POWER = 12;
-  const HOLE_RADIUS = course.hole.r;
-
-  function resetGame() {
-    ball.x = course.start.x;
-    ball.y = course.start.y;
-    ball.vx = 0;
-    ball.vy = 0;
-    strokes = 0;
-    isMoving = false;
-    gameWon = false;
-    strokeSpan.textContent = '0';
-  }
-
-  function dist(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-  }
-
-  function lineDist(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = dist(x1, y1, x2, y2);
-    if (len === 0) return dist(px, py, x1, y1);
-    let t = ((px - x1) * dx + (py - y1) * dy) / (len * len);
-    t = Math.max(0, Math.min(1, t));
-    const cx = x1 + t * dx;
-    const cy = y1 + t * dy;
-    return dist(px, py, cx, cy);
-  }
-
-  function reflect(vx, vy, nx, ny) {
-    const dot = vx * nx + vy * ny;
-    return { vx: vx - 2 * dot * nx, vy: vy - 2 * dot * ny };
-  }
-
-  function getWallNormal(x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    return { nx: -dy / len, ny: dx / len };
-  }
-
-  function updatePhysics() {
-    if (!isMoving || gameWon) return;
-
-    ball.vx *= FRICTION;
-    ball.vy *= FRICTION;
-
-    if (Math.abs(ball.vx) < MIN_SPEED && Math.abs(ball.vy) < MIN_SPEED) {
-      ball.vx = 0;
-      ball.vy = 0;
-      isMoving = false;
-      return;
-    }
-
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-
-    for (const w of course.walls) {
-      const d = lineDist(ball.x, ball.y, w[0], w[1], w[2], w[3]);
-      if (d < ball.r) {
-        const n = getWallNormal(w[0], w[1], w[2], w[3]);
-        const reflected = reflect(ball.vx, ball.vy, n.nx, n.ny);
-        ball.vx = reflected.vx * 0.8;
-        ball.vy = reflected.vy * 0.8;
-        const push = ball.r - d + 0.5;
-        ball.x += n.nx * push;
-        ball.y += n.ny * push;
-      }
-    }
-
-    for (const obs of course.obstacles) {
-      if (obs.type === 'alligator') {
-        const halfLen = obs.length / 2;
-        const x1 = obs.x + Math.cos(obs.angle) * halfLen;
-        const y1 = obs.y + Math.sin(obs.angle) * halfLen;
-        const x2 = obs.x - Math.cos(obs.angle) * halfLen;
-        const y2 = obs.y - Math.sin(obs.angle) * halfLen;
-        const d = lineDist(ball.x, ball.y, x1, y1, x2, y2);
-        if (d < ball.r + obs.radius) {
-          const n = getWallNormal(x1, y1, x2, y2);
-          const reflected = reflect(ball.vx, ball.vy, n.nx, n.ny);
-          ball.vx = reflected.vx * 0.8;
-          ball.vy = reflected.vy * 0.8;
-          const push = ball.r + obs.radius - d + 0.5;
-          ball.x += n.nx * push;
-          ball.y += n.ny * push;
-        }
-      } else {
-        const d = dist(ball.x, ball.y, obs.x, obs.y);
-        if (d < ball.r + obs.radius) {
-          const nx = (ball.x - obs.x) / d;
-          const ny = (ball.y - obs.y) / d;
-          const reflected = reflect(ball.vx, ball.vy, nx, ny);
-          ball.vx = reflected.vx * 0.8;
-          ball.vy = reflected.vy * 0.8;
-          const push = ball.r + obs.radius - d + 0.5;
-          ball.x += nx * push;
-          ball.y += ny * push;
-        }
-      }
-    }
-
-    if (dist(ball.x, ball.y, course.hole.x, course.hole.y) < HOLE_RADIUS) {
-      gameWon = true;
-      isMoving = false;
-      ball.vx = 0;
-      ball.vy = 0;
-    }
-  }
-
-  function getCanvasPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
-    };
-  }
-
-  function onPointerDown(e) {
-    e.preventDefault();
-    if (gameWon) {
-      generateCourse();
-      ball.x = course.start.x;
-      ball.y = course.start.y;
-      resetGame();
-      return;
-    }
-    if (isMoving) return;
-    const pos = getCanvasPos(e);
-    if (dist(pos.x, pos.y, ball.x, ball.y) < 30) {
-      isDragging = true;
-      dragStart = { x: pos.x, y: pos.y };
-      dragEnd = { x: pos.x, y: pos.y };
-    }
-  }
-
-  function onPointerMove(e) {
-    e.preventDefault();
-    if (!isDragging) return;
-    const pos = getCanvasPos(e);
-    dragEnd = { x: pos.x, y: pos.y };
-  }
-
-  function onPointerUp(e) {
-    e.preventDefault();
-    if (!isDragging) return;
-    isDragging = false;
-
-    const dx = dragStart.x - dragEnd.x;
-    const dy = dragStart.y - dragEnd.y;
-    const power = Math.min(dist(0, 0, dx, dy) / 15, MAX_POWER);
-
-    if (power > 0.5) {
-      ball.vx = dx / dist(0, 0, dx, dy) * power;
-      ball.vy = dy / dist(0, 0, dx, dy) * power;
-      isMoving = true;
-      strokes++;
-      strokeSpan.textContent = strokes;
-    }
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = '#2d5a27';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = '#3a7a33';
-    ctx.beginPath();
-    ctx.ellipse(300, 200, 250, 160, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#e53935';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    for (const w of course.walls) {
-      ctx.beginPath();
-      ctx.moveTo(w[0], w[1]);
-      ctx.lineTo(w[2], w[3]);
-      ctx.stroke();
-    }
-
-    for (const obs of course.obstacles) {
-      if (obs.type === 'alligator') drawAlligator(ctx, obs);
-      else if (obs.type === 'bird') drawBird(ctx, obs);
-      else if (obs.type === 'turtle') drawTurtle(ctx, obs);
-    }
-
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(course.hole.x, course.hole.y, HOLE_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(course.hole.x, course.hole.y - HOLE_RADIUS);
-    ctx.lineTo(course.hole.x, course.hole.y - HOLE_RADIUS - 30);
-    ctx.stroke();
-    ctx.fillStyle = '#e53935';
-    ctx.beginPath();
-    ctx.moveTo(course.hole.x, course.hole.y - HOLE_RADIUS - 30);
-    ctx.lineTo(course.hole.x + 15, course.hole.y - HOLE_RADIUS - 22);
-    ctx.lineTo(course.hole.x, course.hole.y - HOLE_RADIUS - 14);
-    ctx.fill();
-
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#999';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    if (isDragging) {
-      const dx = dragStart.x - dragEnd.x;
-      const dy = dragStart.y - dragEnd.y;
-      const power = Math.min(dist(0, 0, dx, dy) / 15, MAX_POWER);
-      const len = power * 15;
-
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(ball.x, ball.y);
-      ctx.lineTo(ball.x + (dx / dist(0, 0, dx, dy)) * len, ball.y + (dy / dist(0, 0, dx, dy)) * len);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    if (gameWon) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#f0c040';
-      ctx.font = 'bold 36px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Hole in ' + strokes + '!', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.fillStyle = '#aaa';
-      ctx.font = '16px sans-serif';
-      ctx.fillText('Click to play again', canvas.width / 2, canvas.height / 2 + 30);
-    }
-  }
-
-  function drawAlligator(ctx, obs) {
-    const halfLen = obs.length / 2;
-    const x1 = obs.x + Math.cos(obs.angle) * halfLen;
-    const y1 = obs.y + Math.sin(obs.angle) * halfLen;
-    const x2 = obs.x - Math.cos(obs.angle) * halfLen;
-    const y2 = obs.y - Math.sin(obs.angle) * halfLen;
-
-    // Body outline
-    ctx.strokeStyle = '#1a3a1a';
-    ctx.lineWidth = obs.radius * 2 + 3;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    // Body fill
-    ctx.strokeStyle = '#4a7c3f';
-    ctx.lineWidth = obs.radius * 2;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    // Snout outline
-    const snoutX = x1 + Math.cos(obs.angle) * 8;
-    const snoutY = y1 + Math.sin(obs.angle) * 8;
-    ctx.fillStyle = '#1a3a1a';
-    ctx.beginPath();
-    ctx.moveTo(snoutX, snoutY);
-    ctx.lineTo(snoutX + Math.cos(obs.angle + 0.8) * 10, snoutY + Math.sin(obs.angle + 0.8) * 10);
-    ctx.lineTo(snoutX + Math.cos(obs.angle - 0.8) * 10, snoutY + Math.sin(obs.angle - 0.8) * 10);
-    ctx.fill();
-
-    // Snout fill
-    ctx.fillStyle = '#4a7c3f';
-    ctx.beginPath();
-    ctx.moveTo(snoutX, snoutY);
-    ctx.lineTo(snoutX + Math.cos(obs.angle + 0.8) * 8, snoutY + Math.sin(obs.angle + 0.8) * 8);
-    ctx.lineTo(snoutX + Math.cos(obs.angle - 0.8) * 8, snoutY + Math.sin(obs.angle - 0.8) * 8);
-    ctx.fill();
-
-    // Eyes (two bumps on top)
-    const eyeOff = 6;
-    const perpX = -Math.sin(obs.angle);
-    const perpY = Math.cos(obs.angle);
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(obs.x + perpX * eyeOff, obs.y + perpY * eyeOff, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(obs.x - perpX * eyeOff, obs.y - perpY * eyeOff, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(obs.x + perpX * eyeOff, obs.y + perpY * eyeOff, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(obs.x - perpX * eyeOff, obs.y - perpY * eyeOff, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Teeth (small white triangles along body)
-    ctx.fillStyle = '#fff';
-    for (let t = -0.3; t <= 0.3; t += 0.3) {
-      const tx = obs.x + Math.cos(obs.angle) * t * obs.length;
-      const ty = obs.y + Math.sin(obs.angle) * t * obs.length;
-      ctx.beginPath();
-      ctx.moveTo(tx + perpX * obs.radius, ty + perpY * obs.radius);
-      ctx.lineTo(tx + perpX * (obs.radius + 4), ty + perpY * (obs.radius + 4));
-      ctx.lineTo(tx + perpX * (obs.radius + 2), ty + perpY * (obs.radius + 2));
-      ctx.fill();
-    }
-  }
-
-  function drawBird(ctx, obs) {
-    // Body
-    ctx.fillStyle = '#8B4513';
-    ctx.beginPath();
-    ctx.ellipse(obs.x, obs.y, obs.radius, obs.radius * 0.7, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Wing
-    ctx.fillStyle = '#6B3410';
-    ctx.beginPath();
-    ctx.ellipse(obs.x - 2, obs.y - 3, obs.radius * 0.6, obs.radius * 0.4, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Beak
-    ctx.fillStyle = '#FF8C00';
-    ctx.beginPath();
-    ctx.moveTo(obs.x + obs.radius, obs.y);
-    ctx.lineTo(obs.x + obs.radius + 8, obs.y - 2);
-    ctx.lineTo(obs.x + obs.radius + 8, obs.y + 2);
-    ctx.fill();
-
-    // Eye
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(obs.x + obs.radius * 0.5, obs.y - 3, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(obs.x + obs.radius * 0.5, obs.y - 3, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawTurtle(ctx, obs) {
-    // Shell (dome)
-    ctx.fillStyle = '#2E7D32';
-    ctx.beginPath();
-    ctx.arc(obs.x, obs.y, obs.radius, Math.PI, 0);
-    ctx.fill();
-    ctx.strokeStyle = '#1B5E20';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Shell pattern (hexagon lines)
-    ctx.strokeStyle = '#1B5E20';
-    ctx.lineWidth = 1;
-    for (let i = -1; i <= 1; i++) {
-      const sx = obs.x + i * obs.radius * 0.4;
-      const sy = obs.y - obs.radius * 0.3;
-      ctx.beginPath();
-      ctx.arc(sx, sy, obs.radius * 0.35, 0.2, Math.PI - 0.2);
-      ctx.stroke();
-    }
-
-    // Head
-    ctx.fillStyle = '#4CAF50';
-    ctx.beginPath();
-    ctx.arc(obs.x + obs.radius * 0.7, obs.y + 2, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eye
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(obs.x + obs.radius * 0.7 + 2, obs.y, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Legs
-    ctx.fillStyle = '#4CAF50';
-    const legPositions = [
-      [obs.x - obs.radius * 0.5, obs.y + obs.radius * 0.3],
-      [obs.x + obs.radius * 0.3, obs.y + obs.radius * 0.3],
-      [obs.x - obs.radius * 0.5, obs.y - obs.radius * 0.3],
-      [obs.x + obs.radius * 0.3, obs.y - obs.radius * 0.3]
-    ];
-    for (const [lx, ly] of legPositions) {
-      ctx.beginPath();
-      ctx.arc(lx, ly, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function gameLoop() {
-    updatePhysics();
-    draw();
-    requestAnimationFrame(gameLoop);
-  }
-
-
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mousemove', onPointerMove);
-  canvas.addEventListener('mouseup', onPointerUp);
-  canvas.addEventListener('mouseleave', (e) => {
-    if (isDragging) {
-      isDragging = false;
-    }
-  });
-
-  canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-  canvas.addEventListener('touchmove', onPointerMove, { passive: false });
-  canvas.addEventListener('touchend', onPointerUp, { passive: false });
-
-  golfBtn.addEventListener('click', () => {
-    generateCourse();
-    ball.x = course.start.x;
-    ball.y = course.start.y;
-    overlay.classList.add('active');
-    resetGame();
-  });
-
-  closeBtn.addEventListener('click', () => {
-    overlay.classList.remove('active');
-  });
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      overlay.classList.remove('active');
-    }
-  });
-
-  gameLoop();
-})();

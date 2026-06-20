@@ -7,7 +7,7 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background-color: #1a1a2e;
-  color: #e0e0e0;
+  color: #ffffff;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -22,7 +22,7 @@ body {
 header {
   text-align: center;
   padding: 12px 0 20px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #444;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -37,28 +37,28 @@ header h1 {
 
 .title-line1 {
   display: block;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
 }
 
 .title-line2 {
   display: block;
-  font-size: 0.95rem;
-  font-weight: 300;
+  font-size: 1.1rem;
+  font-weight: 400;
   margin-top: 2px;
 }
 
 .title-line3 {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 300;
+  font-size: 1rem;
+  font-weight: 400;
   margin-top: 2px;
   color: #f0c040;
   font-family: inherit;
 }
 
 .reset-note {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 1rem;
+  color: #aaa;
   font-style: italic;
   margin-top: 4px;
 }
@@ -80,6 +80,14 @@ header h1 {
   gap: 6px;
 }
 
+.header-admin-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 .header-refresh-group {
   display: flex;
   flex-direction: column;
@@ -91,8 +99,8 @@ header h1 {
   background: #16213e;
   border: 2px solid #ccc;
   color: #ccc;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -103,8 +111,8 @@ header h1 {
 }
 
 .refresh-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 .refresh-btn:hover {
@@ -124,17 +132,18 @@ header h1 {
 }
 
 .countdown-timer {
-  font-size: 0.7rem;
-  color: #fff;
+  font-size: 0.85rem;
+  color: #ddd;
   text-align: center;
 }
 
-.golf-btn {
+/* Admin button (gear icon) */
+.admin-btn {
   background: #16213e;
   border: 2px solid #ccc;
   color: #ccc;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -142,22 +151,83 @@ header h1 {
   justify-content: center;
   transition: background 0.3s, box-shadow 0.3s;
   padding: 0;
-  margin-top: 0;
 }
 
-.golf-btn:hover {
+.admin-btn:hover {
   background: #1e2a4a;
   border-color: #fff;
   color: #fff;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+.admin-btn.active {
+  border-color: #f0c040;
+  color: #f0c040;
+  box-shadow: 0 0 10px rgba(240, 192, 64, 0.4);
+}
+
+/* Admin toolbar */
+.admin-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px 0;
+  padding: 6px 10px;
+  background: #0f3460;
+  border-radius: 10px;
+  border: 1px solid #f0c040;
+  flex-wrap: wrap;
+}
+
+.admin-tool-btn {
+  background: #16213e;
+  border: 2px solid #555;
+  color: #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  font-family: inherit;
+}
+
+.admin-tool-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.admin-tool-btn:hover {
+  background: #1e2a4a;
+  border-color: #fff;
+  color: #fff;
+}
+
+.admin-tool-btn.locked {
+  border-color: #f0c040;
+  color: #f0c040;
+}
+
+.admin-tool-btn.no-dinner-btn.active {
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.admin-tool-label {
+  white-space: nowrap;
+}
+
 .home-btn {
   background: #16213e;
   border: 2px solid #ccc;
   color: #ccc;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -165,7 +235,6 @@ header h1 {
   justify-content: center;
   transition: background 0.3s, box-shadow 0.3s;
   padding: 0;
-  margin-top: 0;
 }
 
 .home-btn:hover {
@@ -182,49 +251,67 @@ header h1 {
   background: #16213e;
   border: 2px solid #ccc;
   color: #ccc;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 16px;
   user-select: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   line-height: 1.2;
-  min-width: 50px;
+  min-width: 54px;
 }
 
 .badge-label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .badge-number {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
 }
 
 .cards-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin: 12px 0 16px 0;
 }
 
 .family-card {
   background-color: #16213e;
-  border-radius: 10px;
-  padding: 14px 14px 10px 14px;
-  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 16px 14px 12px 14px;
+  border: 2px solid #2a2a4a;
   transition: border-color 0.3s, box-shadow 0.3s;
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  position: relative;
 }
 
 .family-card.going {
   border-color: #4caf50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.15);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.2);
+}
+
+/* Locked card styles */
+.family-card.locked {
+  border-color: #f0c040;
+  box-shadow: 0 0 8px rgba(240, 192, 64, 0.15);
+  background-color: #14142b;
+}
+
+/* Lock badge on locked cards */
+.lock-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 1.2rem;
+  user-select: none;
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .card-row-1 {
@@ -235,7 +322,7 @@ header h1 {
 }
 
 .family-name {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 600;
   flex: 1;
   min-width: 0;
@@ -245,146 +332,60 @@ header h1 {
   line-height: 1.25;
 }
 
+/* Two-button toggle style */
 .toggle-container {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  gap: 0;
   flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #555;
 }
 
-.toggle-label {
-  font-size: 1.1rem;
-  transition: color 0.3s, font-weight 0.3s;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.toggle-label.not-going {
-  color: #888;
-}
-
-.toggle-label.not-going.active {
-  color: #f44336;
+.toggle-btn {
+  font-size: 1rem;
   font-weight: 600;
-}
-
-.toggle-label.going {
-  color: #888;
-}
-
-.toggle-label.going.active {
-  color: #4caf50;
-  font-weight: 600;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 56px;
-  height: 30px;
-  flex-shrink: 0;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
+  padding: 10px 14px;
+  border: none;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #f44336;
-  transition: 0.3s;
-  border-radius: 30px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 22px;
-  width: 22px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: #4caf50;
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
-.card-comment-row {
-  margin: 6px 0 0 0;
-}
-
-.card-comment-input {
-  width: 100%;
-  background-color: #0f3460;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 0.95rem;
-  font-family: inherit;
-  outline: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.card-comment-input:focus {
-  border-color: #f0c040;
-}
-
-.card-comment-input::placeholder {
-  color: #888;
-  font-style: italic;
-}
-
-.calendar-badge {
-  position: absolute;
-  top: 66px;
-  right: 5px;
-  width: 56px;
-  border-radius: 12px;
-  overflow: hidden;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
   user-select: none;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  background: #0f3460;
+  color: #888;
+  min-height: 48px;
+  line-height: 1.2;
 }
 
-.cal-month {
-  background: #e53935;
+.toggle-btn:first-child {
+  border-right: 1px solid #555;
+}
+
+.toggle-btn.active-not-going {
+  background: #c62828;
   color: #fff;
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 3px 0;
-  line-height: 1.1;
 }
 
-.cal-day {
-  background: #fff;
-  color: #222;
-  font-size: 1.4rem;
-  font-weight: 700;
-  padding: 2px 0 4px 0;
-  line-height: 1.15;
+.toggle-btn.active-going {
+  background: #2e7d32;
+  color: #fff;
 }
 
+.toggle-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Disabled state for locked cards - extra visual */
+.toggle-btn.locked-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  position: relative;
+}
+
+/* Always-visible attending number */
 .card-bottom {
-  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -394,32 +395,26 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 8px;
-}
-
-.attending-zero {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #888;
-  display: none;
+  padding-top: 10px;
 }
 
 .number-label {
-  font-size: 0.95rem;
-  color: #888;
+  font-size: 1rem;
+  color: #aaa;
   white-space: nowrap;
 }
 
 .number-select {
   background-color: #0f3460;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 1rem;
+  color: #ffffff;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.1rem;
   cursor: pointer;
   outline: none;
-  min-width: 52px;
+  min-width: 60px;
+  min-height: 44px;
 }
 
 .number-select:focus {
@@ -431,114 +426,557 @@ input:checked + .slider:before {
   cursor: not-allowed;
 }
 
+.card-comment-row {
+  margin: 10px 0 0 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.card-comment-input {
+  width: 100%;
+  background-color: #0f3460;
+  color: #ffff00;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 10px 70px 10px 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  min-height: 44px;
+}
+
+.card-comment-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.card-comment-input:focus {
+  border-color: #f0c040;
+}
+
+.card-comment-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Clear button - text-based */
+.comment-clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #555;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  line-height: 1;
+  border-radius: 6px;
+  display: none;
+  transition: background 0.2s;
+}
+
+.comment-clear-btn:hover {
+  background: #777;
+}
+
+.comment-clear-btn.visible {
+  display: block;
+}
+
+.calendar-badge {
+  position: absolute;
+  top: 66px;
+  right: 5px;
+  width: 60px;
+  border-radius: 12px;
+  overflow: hidden;
+  user-select: none;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cal-month {
+  background: #e53935;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 0;
+  line-height: 1.1;
+}
+
+.cal-day {
+  background: #fff;
+  color: #222;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 3px 0 5px 0;
+  line-height: 1.15;
+}
+
 .card-row-3 {
   display: flex;
   justify-content: flex-end;
-  min-height: 1.2em;
-  margin-top: 2px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  min-height: 1.4rem;
 }
 
 .last-modified {
-  font-size: 0.8rem;
-  color: #aaa;
+  font-size: 0.9rem;
+  color: #bbb;
   font-style: italic;
   white-space: nowrap;
   user-select: none;
 }
 
+.last-modified.locked {
+  color: #ffff00;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 0.9rem;
+}
+
+/* Card-level saved indicator */
+.saved-indicator {
+  font-size: 0.85rem;
+  color: #4caf50;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.saved-indicator.visible {
+  opacity: 1;
+}
+
+.saved-indicator.fading {
+  opacity: 0;
+}
+
+/* Yellow pulse animation - 3 cycles on toggle */
+@keyframes highlight-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4); }
+  20%  { box-shadow: 0 0 0 6px rgba(240, 192, 64, 0.8); }
+  40%  { box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.5); }
+  65%  { box-shadow: 0 0 0 6px rgba(240, 192, 64, 0.8); }
+  85%  { box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0); }
+}
+
+.highlight-pulse {
+  animation: highlight-pulse 0.9s 3 ease-in-out;
+}
+
+/* Border-only pulse for the attending select */
+@keyframes highlight-pulse-border {
+  0%   { border-color: #555; box-shadow: 0 0 0 0 rgba(240, 192, 64, 0); }
+  20%  { border-color: #f0c040; box-shadow: 0 0 0 5px rgba(240, 192, 64, 0.7); }
+  40%  { border-color: #f0c040; box-shadow: 0 0 0 2px rgba(240, 192, 64, 0.3); }
+  65%  { border-color: #f0c040; box-shadow: 0 0 0 5px rgba(240, 192, 64, 0.7); }
+  85%  { border-color: #f0c040; box-shadow: 0 0 0 2px rgba(240, 192, 64, 0.3); }
+  100% { border-color: #555; box-shadow: 0 0 0 0 rgba(240, 192, 64, 0); }
+}
+
+.highlight-pulse-select {
+  animation: highlight-pulse-border 0.9s 3 ease-in-out;
+}
+
+/* Balloon celebration - Going! */
+@keyframes balloon-rise {
+  0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+  15%  { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  30%  { transform: translateY(-30px) scale(1); opacity: 1; }
+  100% { transform: translateY(-200px) scale(0.8); opacity: 0; }
+}
+
+@keyframes confetti-spin {
+  0%   { transform: rotate(0deg) scale(0); opacity: 0; }
+  20%  { transform: rotate(180deg) scale(1.2); opacity: 1; }
+  40%  { transform: rotate(360deg) scale(1); opacity: 1; }
+  100% { transform: rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+.celebration-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.balloon {
+  position: absolute;
+  bottom: -10px;
+  font-size: 2.4rem;
+  animation: balloon-rise 2.2s ease-out forwards;
+  pointer-events: none;
+}
+
+.balloon:nth-child(odd) {
+  animation: balloon-rise 2.5s ease-out forwards;
+}
+
+.balloon:nth-child(3n) {
+  font-size: 2rem;
+  animation: balloon-rise 2.8s ease-out forwards;
+}
+
+.confetti {
+  position: absolute;
+  font-size: 1.8rem;
+  animation: confetti-spin 1.8s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Sad emoji for Not Going */
+@keyframes sad-fade {
+  0%   { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  20%  { transform: scale(1.3) rotate(5deg); opacity: 1; }
+  40%  { transform: scale(1) rotate(0deg); opacity: 1; }
+  70%  { transform: scale(0.8) rotate(-5deg); opacity: 0.6; }
+  100% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+}
+
+.sad-emoji {
+  position: absolute;
+  font-size: 3rem;
+  animation: sad-fade 1.8s ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* No Dinner modal overlay */
+.overlay-card {
+  display: none;
+  background-color: #16213e;
+  border-radius: 12px;
+  border: 2px solid #f44336;
+  padding: 20px;
+  margin: 12px 0 16px 0;
+  box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
+}
+
+.overlay-card.active {
+  display: block;
+}
+
+.overlay-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overlay-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.overlay-card-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f44336;
+}
+
+.overlay-close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.overlay-close-btn:hover {
+  color: #fff;
+}
+
+.overlay-message-input {
+  width: 100%;
+  min-height: 80px;
+  background-color: #0f3460;
+  color: #ffffff;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+}
+
+.overlay-message-input:focus {
+  border-color: #f44336;
+}
+
+.overlay-message-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.no-dinner-btn.active {
+  border-color: #f44336;
+  color: #f44336;
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+}
+
 .total-section {
   text-align: center;
-  padding: 14px;
+  padding: 16px;
   background-color: #16213e;
-  border-radius: 10px;
-  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  border: 2px solid #2a2a4a;
 }
 
 .total-section h2 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: #f0c040;
 }
 
 #totalCount {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 700;
 }
 
-.golf-overlay {
+/* Inactive users section */
+.inactive-section {
+  margin: 12px 0 16px 0;
+  padding: 12px;
+  background-color: #1a1a2e;
+  border-radius: 12px;
+  border: 2px solid #555;
+}
+
+.inactive-heading {
+  font-size: 1rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.inactive-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Inactive card styles */
+.family-card.inactive-card {
+  border-color: #555;
+  background-color: #14142b;
+  opacity: 0.75;
+}
+
+.family-card.inactive-card .family-name {
+  color: #888;
+}
+
+.family-card.inactive-card .toggle-btn {
+  opacity: 0.5;
+}
+
+.family-card.inactive-card .card-comment-input {
+  opacity: 0.6;
+}
+
+.family-card.inactive-card .card-row-2 {
+  display: none;
+}
+
+/* Admin mode indicator on active cards - move to inactive button */
+.card-admin-row {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  gap: 6px;
+}
+
+body.admin-mode .card-admin-row {
+  display: flex;
+}
+
+.move-inactive-btn {
+  background: #333;
+  border: 1px solid #666;
+  color: #aaa;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.move-inactive-btn:hover {
+  background: #555;
+  color: #fff;
+  border-color: #f0c040;
+}
+
+.move-active-btn {
+  background: #2e7d32;
+  border: 1px solid #4caf50;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.move-active-btn:hover {
+  background: #388e3c;
+}
+
+/* Modal overlay for add-family */
+.modal-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 500;
+  align-items: center;
   justify-content: center;
-  align-items: center;
 }
 
-.golf-overlay.active {
+.modal-overlay.active {
   display: flex;
 }
 
-.golf-modal {
-  background: #1a1a2e;
-  border: 2px solid #444;
-  border-radius: 16px;
-  padding: 16px;
-  max-width: 640px;
-  width: 95%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+.modal-content {
+  background: #16213e;
+  border: 2px solid #f0c040;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
 }
 
-.golf-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.golf-title {
-  font-size: 1.2rem;
-  font-weight: 700;
+.modal-content h3 {
   color: #f0c040;
+  margin-bottom: 16px;
+  font-size: 1.2rem;
 }
 
-.golf-close {
-  background: none;
-  border: none;
+.modal-field {
+  margin-bottom: 14px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 0.95rem;
   color: #ccc;
-  font-size: 1.8rem;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
+  margin-bottom: 4px;
 }
 
-.golf-close:hover {
+.modal-field input,
+.modal-field select {
+  width: 100%;
+  background: #0f3460;
+  color: #fff;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.modal-field input:focus,
+.modal-field select:focus {
+  border-color: #f0c040;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  font-family: inherit;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.modal-cancel {
+  background: #333;
+  color: #ccc;
+  border-color: #555;
+}
+
+.modal-cancel:hover {
+  background: #444;
   color: #fff;
 }
 
-.golf-strokes {
-  font-size: 0.95rem;
-  color: #aaa;
-  margin-bottom: 8px;
+.modal-confirm {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #4caf50;
 }
 
-#golfCanvas {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background: #2d5a27;
-  display: block;
+.modal-confirm:hover {
+  background: #388e3c;
 }
 
-.golf-hint {
-  font-size: 0.75rem;
-  color: #888;
-  text-align: center;
-  margin-top: 6px;
-  font-style: italic;
+
+/* Delete card button */
+.delete-card-btn {
+  background: #6d1a1a;
+  border: 1px solid #a33;
+  color: #f88;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-card-btn:hover {
+  background: #8a2020;
+  color: #fff;
+  border-color: #f44;
+}
+.version-footer {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #777;
+  padding: 8px 4px 4px 4px;
+  user-select: none;
 }
 
 @media (min-width: 480px) {
@@ -547,21 +985,21 @@ input:checked + .slider:before {
   }
 
   .family-card {
-    padding: 14px 18px;
+    padding: 16px 18px;
   }
 
   .title-line1 {
-    font-size: 1.7rem;
+    font-size: 1.8rem;
   }
 
   .title-line2 {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 }
 
 @media (min-width: 600px) {
   .family-card {
-    padding: 16px 20px;
+    padding: 18px 20px;
     min-height: 0;
     flex-direction: row;
     flex-wrap: wrap;
@@ -576,13 +1014,13 @@ input:checked + .slider:before {
   }
 
   .family-name {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     min-width: 180px;
   }
 
   .card-comment-row {
     width: 100%;
-    margin: 6px 0 0 0;
+    margin: 8px 0 0 0;
     order: 10;
   }
 
@@ -600,10 +1038,31 @@ input:checked + .slider:before {
 
   .card-row-3 {
     margin-top: 0;
+    min-height: 0;
+    width: 100%;
+    text-align: right;
+    justify-content: flex-end;
+    order: 11;
   }
 
   .last-modified {
     min-width: 140px;
     text-align: right;
+  }
+
+  .saved-indicator {
+    order: 0;
+  }
+
+  /* Admin row fits in inline layout on desktop */
+  .card-admin-row {
+    width: 100%;
+    order: 12;
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+
+  .admin-toolbar {
+    flex-direction: row;
   }
 }
